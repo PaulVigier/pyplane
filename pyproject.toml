@@ -1,0 +1,8 @@
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = ["migrations", "venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "C90", "D", "N", "ANN", "SIM"]
+ignore = ["E501","N806","N802","N803","N816","SIM108"]
