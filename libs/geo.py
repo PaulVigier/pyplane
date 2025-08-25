@@ -170,7 +170,7 @@ def distance2D(lat1: float, long1: float, lat2: float, long2: float) -> float:
         float: Distance between the two points in meters. Convergence goes down to millimeters.
 
     """
-    return geod.Inverse(lat1, long1, lat2, long2)['s3']
+    return geod.Inverse(lat1, long1, lat2, long2)['s12']
 
 
 def distance3D(lat1: float, long1: float, h1: float, lat2: float, long2: float, h2: float) -> float:

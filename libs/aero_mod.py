@@ -115,7 +115,7 @@ def lift_coeff(data: pd.DataFrame, times: list, smooth: str, ZF_CG: float, RAMP_
             )
             rho = delta * cst.RHO_SL_SCF
             AOA = data_row['AOA'] - 0.7
-            AOA_true = das.C12_corrrectedAOA(AOA, np.deg2rad(data_row['PITCH_RATE']), Vtpc, Lxa)
+            AOA_true = das.C12_correctedAOA(AOA, np.deg2rad(data_row['PITCH_RATE']), Vtpc, Lxa)
 
             left_adv_ratio, left_power_coeff, left_thrust = das.C12_prop_param(
                 data_row['LEFT_RPM'], data_row['LEFT_TQ'], Hpc, Vpc, data_row['SAT']
@@ -139,6 +139,7 @@ def lift_coeff(data: pd.DataFrame, times: list, smooth: str, ZF_CG: float, RAMP_
             right_blade_angle = das.C12_blade_angle(right_adv_ratio, right_power_coeff)
             blade_angle = (left_blade_angle + right_blade_angle) / 2
             CT = das.C12_Thrust_coeff(adv_ratio, blade_angle)
+            # print(f"CT: {CT}, AOA: {AOA_true}, Conf: {conf}")
             CL_theo = das.C12_CL_theo(CT, AOA_true, conf=conf)
             Lift_theo = 0.5 * rho * (Vtpc * cst.KT_TO_FPS) ** 2 * CL_theo * cst.C12_WING_AREA
 

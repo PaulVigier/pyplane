@@ -20,22 +20,23 @@ FTT Modules:
 Version: 1.0.5
 """
 
-from . import atmos_1976
-from . import constants
+from . import atmos_1976 as atm
+from . import constants as cst
 from . import das
 from . import geo
-from . import transform
+from . import transform as tf
+from . import tacview
 
 
 # modules for FTT
 from . import aero_mod
-from . import flying_qualities
-from . import performance
-from . import tower_fly_by
+from . import flying_qualities as fq
+from . import performance as perf
+from . import tower_fly_by as tfb
 
 VERSION = '1.0.5'
 
 __all__ = [
-    "atmos_1976", "constants", "das", "geo", "transform",
-    "performance", "aero_mod", "flying_qualities", "tower_fly_by"
+    "atm", "cst", "das", "geo", "tf",
+    "perf", "aero_mod", "fq", "tfb", "tacview"
 ]

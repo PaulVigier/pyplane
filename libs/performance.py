@@ -11,7 +11,7 @@ from libs import das
 window_length = 101
 polyorder = 2
 
-def level_accel(data: pd.DataFrame, times: np.ndarray, smooth: str='1s', anchor: float=0, YAPS: bool=True,
+def level_accel(data: pd.DataFrame, event_list: dict, times: np.ndarray, smooth: str='1s', anchor: float=0, YAPS: bool=True,
                 graphs: bool=False)-> pd.DataFrame:
     """Post process data for C-12 level accelerations.
 
@@ -25,6 +25,7 @@ def level_accel(data: pd.DataFrame, times: np.ndarray, smooth: str='1s', anchor:
 
     Args:
         data (pd.DataFrame): DataFrame containing flight data indexed by timestamp as return by das_read function
+        event_list (dict): Dictionary containing time for each event.
         times (np.ndarray): Array specifying the start and end timestamps for each level acceleration segment.
         smooth (str, optional): Resampling interval or smoothing the flight data. Default is 1s.
         anchor (float, optional): Anchor value at the end of level acceleration (Ps=0).
@@ -37,7 +38,7 @@ def level_accel(data: pd.DataFrame, times: np.ndarray, smooth: str='1s', anchor:
         fitted curves, and performance metrics.
 
     """
-    timestamps=das.to_test_point_lite(times)
+    timestamps=das.to_test_point_lite(times,event_list)
 
     #correct the timestamp to the date of the flight (to make time comparison easier)
     flight_date=data.index[0].date()
@@ -157,7 +158,7 @@ def level_accel(data: pd.DataFrame, times: np.ndarray, smooth: str='1s', anchor:
     return accel_data
 
 
-def sawtooth_climb(data: pd.DataFrame, times: np.ndarray, smooth: str='1s', YAPS: bool=True, graphs: bool=False
+def sawtooth_climb(data: pd.DataFrame, event_list: dict, times: np.ndarray, smooth: str='1s', YAPS: bool=True, graphs: bool=False
                    ) -> pd.DataFrame:
     """Post process data for C-12 sawtooth climbs.
 
@@ -171,6 +172,7 @@ def sawtooth_climb(data: pd.DataFrame, times: np.ndarray, smooth: str='1s', YAPS
 
     Args:
         data (pd.DataFrame): DataFrame containing flight data indexed by timestamp as return by das_read function
+        event_list (dict): Dictionary containing time for each event.
         times (np.ndarray): Array specifying the start and end timestamps for each level acceleration segment.
         smooth (str, optional): Resampling interval or smoothing the flight data. Default is 1s.
         YAPS (bool, optional): If True, corrected pitot static data using YAPS coefficients (default is True).
@@ -182,7 +184,7 @@ def sawtooth_climb(data: pd.DataFrame, times: np.ndarray, smooth: str='1s', YAPS
         fitted curves, and performance metrics.
 
     """
-    sawtooth_data=das.to_test_point_lite(times)
+    sawtooth_data=das.to_test_point_lite(times,event_list)
 
     #correct the timestamp to the date of the flight (to make time comparison easier)
     flight_date=data.index[0].date()
@@ -296,7 +298,7 @@ def sawtooth_climb(data: pd.DataFrame, times: np.ndarray, smooth: str='1s', YAPS
     return sawtooth_data
 
 
-def cruise_climb(data: pd.DataFrame, times: pd.DataFrame, smooth: str, YAPS: bool = True, graphs: bool = False
+def cruise_climb(data: pd.DataFrame, event_list: dict, times: pd.DataFrame, smooth: str, YAPS: bool = True, graphs: bool = False
                  ) -> pd.DataFrame:
     """Post process data for C-12 climbs.
 
@@ -310,6 +312,7 @@ def cruise_climb(data: pd.DataFrame, times: pd.DataFrame, smooth: str, YAPS: boo
 
     Args:
         data (pd.DataFrame): DataFrame containing flight data indexed by timestamp as return by das_read function
+        event_list (dict): Dictionary containing time for each event.
         times (np.ndarray): Array specifying the start and end timestamps for each climb segment.
         smooth (str, optional): Resampling interval or smoothing the flight data. Default is 1s.
         YAPS (bool, optional): If True, corrected pitot static data using YAPS coefficients (default is True).
@@ -321,7 +324,7 @@ def cruise_climb(data: pd.DataFrame, times: pd.DataFrame, smooth: str, YAPS: boo
         fitted curves, and performance metrics.
 
     """
-    timestamps = das.to_test_point_lite(times)
+    timestamps = das.to_test_point_lite(times,event_list)
 
     #correct the timestamp to the date of the flight (to make time comparison easier)
     flight_date=data.index[0].date()
@@ -431,7 +434,7 @@ def cruise_climb(data: pd.DataFrame, times: pd.DataFrame, smooth: str, YAPS: boo
     return climb_data
 
 
-def FM_descent(data: pd.DataFrame, times: pd.DataFrame, smooth: str, YAPS: bool = True, graphs: bool = False
+def FM_descent(data: pd.DataFrame, event_list: dict, times: pd.DataFrame, smooth: str, YAPS: bool = True, graphs: bool = False
                ) -> pd.DataFrame:
     """Post process data for C-12 descent.
 
@@ -445,6 +448,7 @@ def FM_descent(data: pd.DataFrame, times: pd.DataFrame, smooth: str, YAPS: bool 
 
     Args:
         data (pd.DataFrame): DataFrame containing flight data indexed by timestamp as return by das_read function
+        event_list (dict): Dictionary containing time for each event.
         times (np.ndarray): Array specifying the start and end timestamps for each climb segment.
         smooth (str, optional): Resampling interval or smoothing the flight data. Default is 1s.
         YAPS (bool, optional): If True, corrected pitot static data using YAPS coefficients (default is True).
@@ -456,7 +460,7 @@ def FM_descent(data: pd.DataFrame, times: pd.DataFrame, smooth: str, YAPS: bool 
         fitted curves, and performance metrics.
 
     """
-    timestamps = das.to_test_point_lite(times)
+    timestamps = das.to_test_point_lite(times,event_list)
     #correct the timestamp to the date of the flight (to make time comparison easier)
     flight_date=data.index[0].date()
     timestamps_date=timestamps.Begin[0].date()
@@ -563,10 +567,10 @@ def FM_descent(data: pd.DataFrame, times: pd.DataFrame, smooth: str, YAPS: bool 
     return descent_data
 
 
-def Emer_descent(data: pd.DataFrame, times: pd.DataFrame, smooth: str, YAPS: bool = True,
+def Emer_descent(data: pd.DataFrame, event_list: dict, times: pd.DataFrame, smooth: str, YAPS: bool = True,
                  graphs: bool = False) -> pd.DataFrame:
     """Post process data for C-12 emergency descent. Identical to FM_descent except for titles and export files name."""
-    timestamps=das.to_test_point_lite(times)
+    timestamps=das.to_test_point_lite(times,event_list)
 
     #correct the timestamp to the date of the flight (to make time comparison easier)
     flight_date=data.index[0].date()
@@ -661,7 +665,7 @@ def Emer_descent(data: pd.DataFrame, times: pd.DataFrame, smooth: str, YAPS: boo
     return descent_data
 
 
-def level_turn(data: pd.DataFrame, times: pd.DataFrame, smooth: int, YAPS: bool = True,
+def level_turn(data: pd.DataFrame, event_list: dict, times: pd.DataFrame, smooth: int, YAPS: bool = True,
                graphs: bool = False) -> pd.DataFrame:
     """Post process data for C-12 level turns.
 
@@ -674,6 +678,7 @@ def level_turn(data: pd.DataFrame, times: pd.DataFrame, smooth: int, YAPS: bool 
 
     Args:
         data (pd.DataFrame): DataFrame containing flight data indexed by timestamp as return by das_read function
+        event_list (dict): Dictionary containing time for each event.
         times (np.ndarray): Array specifying the start and end timestamps for each climb segment.
         smooth (str, optional): Resampling interval or smoothing the flight data. Default is 1s.
         YAPS (bool, optional): If True, corrected pitot static data using YAPS coefficients (default is True).
@@ -685,8 +690,7 @@ def level_turn(data: pd.DataFrame, times: pd.DataFrame, smooth: int, YAPS: bool 
         fitted curves, and performance metrics.
 
     """
-    level_turn_data = das.to_test_point_lite(times)
-
+    level_turn_data = das.to_test_point_lite(times,event_list)
     #correct the timestamp to the date of the flight (to make time comparison easier)
     flight_date=data.index[0].date()
     timestamps_date=level_turn_data.Begin[0].date()
@@ -800,98 +804,3 @@ def level_turn(data: pd.DataFrame, times: pd.DataFrame, smooth: int, YAPS: bool 
     level_turn_data.to_csv("data\\Perf\\"+flight_date.strftime('%Y-%m-%d')+"_level_turn.csv")
 
     return level_turn_data
-
-
-##############################  ARCHIVES ##############################################################
-# def level_accel(data,times,smooth, YAPS=True,graphs=False):   #smooth is the number of values to consider for rolling average
-#     timestamps=to_test_point_lite(times)
-
-#     #correct the timestamp to the date of the flight (to make time comparison easier)
-#     flight_date=data.index[0].date()
-#     timestamps_date=timestamps.Begin[0].date()
-#     date_offset=timestamps_date-flight_date
-#     timestamps['Begin']=timestamps['Begin']-date_offset
-#     timestamps['End']=timestamps['End']-date_offset
-
-#     #create series for the results
-#     accel_list=[] #list of all points within a level accel
-
-#     #prepare plots
-#     nb_subplots = len(timestamps)
-
-#     # Create a subplot grid
-#     fig = make_subplots(
-#         rows=nb_subplots,
-#         cols=1,
-#         shared_xaxes=False,  # Optional: you can customize axes sharing
-#         shared_yaxes=False,  # We will be using individual y-axes for each plot
-#         vertical_spacing=0.15,
-#         subplot_titles=[f"Level accel {plot_index+1}" for plot_index in range(nb_subplots)],
-#         # Define a secondary y-axis for each subplot
-#         specs=[[{"secondary_y": True} for _ in range(1)] for _ in range(nb_subplots)]
-#     )
-
-
-#     for accel_index,row in enumerate(timestamps.itertuples()):
-
-#         filtered_df=data.loc[row.Begin:row.End].copy()
-
-#         columns_to_smooth = ['BARO_ALT','GPS_ALT','CAS','TAS','SAT']
-
-#         for col in columns_to_smooth:
-#             filtered_values = signal.savgol_filter(filtered_df[col].astype(float).to_numpy(),
-#                                            window_length=window_length,
-#                                            polyorder=polyorder)
-#             filtered_df.loc[:,col] = filtered_values
-
-#         filtered_df_avg = filtered_df[['BARO_ALT','GPS_ALT','CAS','TAS','SAT']].resample(smooth).first() #average the data
-
-#         filtered_df_avg[['Hpc', 'Vpc', 'Mpc']] = filtered_df_avg.apply(lambda row: pd.Series(das.C12_pitot_static(row['CAS'], row['BARO_ALT'],YAPS=YAPS)), axis=1)
-
-
-#         for i in range(len(filtered_df_avg)-1):
-#             Time_ISO=filtered_df_avg.index[i]
-#             Time_rel=(Time_ISO-row.Begin).total_seconds()       #Time since the beginning of the accel
-#             BARO_ALT=filtered_df_avg['BARO_ALT'].iloc[i]
-#             Hpc=filtered_df_avg['Hpc'].iloc[i]
-#             GPS_ALT=filtered_df_avg['GPS_ALT'].iloc[i]
-#             CAS=filtered_df_avg['CAS'].iloc[i]
-#             Vpc=filtered_df_avg['Vpc'].iloc[i]
-#             TAS=filtered_df_avg['TAS'].iloc[i]
-#             Mpc=filtered_df_avg['Mpc'].iloc[i]
-#             Vtpc=Mpc*np.sqrt(cst.GAMMA*cst.R_SI*(filtered_df_avg['SAT'].iloc[0]+cst.C_TO_K_OFFSET))*cst.MS_TO_KT  #true airspeed at pressure altitude
-#             deltaT=(filtered_df_avg.index[i+1]-filtered_df_avg.index[i]).total_seconds()
-#             deltaH=filtered_df_avg['BARO_ALT'].iloc[i+1]-filtered_df_avg['BARO_ALT'].iloc[i]
-#             deltaV=filtered_df_avg['TAS'].iloc[i+1]-filtered_df_avg['TAS'].iloc[i]
-#             Es=BARO_ALT+(TAS*cst.KT_TO_FPS)**2/(2*cst.G_IMPERIAL)
-#             Ps=deltaH/deltaT+(TAS*cst.KT_TO_FPS)*(deltaV*cst.KT_TO_FPS/deltaT)/(cst.G_IMPERIAL*deltaT)
-#             accel_list.append([Time_ISO,Time_rel,accel_index,Hpc,BARO_ALT,GPS_ALT,CAS,Vpc,TAS,Mpc,Vtpc,deltaT,deltaH,deltaV,Es,Ps])
-
-#     accel_data=pd.DataFrame(accel_list, columns=['Time_ISO','Time_rel','ID','Hpc','BARO_ALT','GPS_ALT','CAS','Vpc','TAS','Mpc','Vtpc','deltaT','deltaH','deltaV','Es','Ps'])
-#     accel_data.set_index('Time_ISO', inplace=True)
-#     #accel_data['Ps_smooth'] = accel_data.groupby('ID')['Ps'].transform(lambda x: x.rolling(window=30, min_periods=1).mean())
-
-
-#     if graphs:
-#         # Update layout for better presentation
-#         fig.update_layout(
-#             height=350*nb_subplots,  # Adjust height based on number of rows
-#             width=1200,  # You can adjust the width
-#             title_text="Level accels",
-#             showlegend=False,
-#         )
-
-#     for id, group in accel_data.groupby('ID'):
-#         fig.add_trace(go.Scatter(x=group.index, y=group['BARO_ALT'],yaxis='y', name=f'Level accel {id}', line=dict(color='blue')),row=id+1,col=1)
-#         fig.add_trace(go.Scatter(x=group.index, y=group['CAS'],yaxis='y2', name=f'Level accel {id}', line=dict(color='red')),row=id+1,col=1,secondary_y=True)
-
-#         # Update axis labels and titles
-#         fig.update_yaxes(title_text="Pressure Altitude (ft)", title_font=dict(color="blue"),  tickfont=dict(color="blue"), row=id+1, col=1)
-#         fig.update_yaxes(title_text="Calibrated Airspeed (kt)", title_font=dict(color="red"),  tickfont=dict(color="red"),row=id+1, col=1, secondary_y=True)
-
-#         # Show the figure
-#     fig.show()
-
-#     accel_data.to_csv("data\\Perf\\"+flight_date.strftime('%Y-%m-%d')+"_level_accel.csv")
-
-#     return accel_data

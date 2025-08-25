@@ -491,7 +491,7 @@ def intercept(coord_f: Transform, coord_tgt: Transform, TAS_f: float, TAS_tgt: f
         for t in times_tgt:
             coords_tgt.append(geo.straight_line(coord_tgt, TAS_tgt, t, level=level))  # Target trajectory
         traj_tgt = Trajectory(np.array(coords_tgt),times_tgt)
-        traj_tgt.params= {'Name': 'Kh-101', 'Color': 'Red', 'Type': 'Air+Missile', 'Pilot': 'Target'},  # Orange for target
+        traj_tgt.params= {'Name': 'Kh-101', 'Color': 'Red', 'Type': 'Air+Missile', 'Pilot': 'Target'}  # Orange for target
         traj_tgt.ID=101
 
         #Generate fighter trajectory
@@ -525,7 +525,7 @@ def intercept(coord_f: Transform, coord_tgt: Transform, TAS_f: float, TAS_tgt: f
         traj_f3.time_offset(time_1 + time_2)  # Offset the time vector for the second turn
 
         traj_f = traj.merge_trajectories([traj_f1, traj_f2, traj_f3])
-        traj_f.params={'Name': 'T-38', 'Color': 'Blue', 'Type':'Air+FixedWing', 'Pilot': 'Fighter'},  # Blue for fighter
+        traj_f.params={'Name': 'T-38', 'Color': 'Blue', 'Type':'Air+FixedWing', 'Pilot': 'Fighter'}  # Blue for fighter
         traj_f.ID=1
 
         return traj_f, traj_tgt
@@ -742,7 +742,7 @@ def intercept(coord_f: Transform, coord_tgt: Transform, TAS_f: float, TAS_tgt: f
             rel_pos_init = rel_pos(coord_f, coord_tgt)  # Initial relative position of the fighter to the target
             plot_tangent_solution_plotly(TIPs,all_rel_pos_out_R,all_rel_pos_out_L,points_1,points_2,rel_pos_init[:2],min_idx,intersections,pos_out_inter)
             plot_geodesic(traj_f, traj_tgt)  # Plot the geodesic path of the fighter and the target
-            tacview.traj2tacview(traj_f,traj_tgt)
+            tacview.traj2tacview("intercept.acmi",[traj_f,traj_tgt])
         return traj_f,traj_tgt,error
     else:
         print("No valid trajectory found.")

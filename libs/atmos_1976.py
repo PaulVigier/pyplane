@@ -45,158 +45,116 @@ Notes
 
 import numpy as np
 from . import constants as cst
+from scipy.optimize import fsolve
+import pandas as pd
 
+def std_atmosphere(ha: float | int | np.ndarray | pd.Series, units: str = 'ft', silent: bool = True)->tuple:
+    """Calculate atmosphere parameters.
 
-def std_atmosphere(ha: float, units: str = 'ft', silent: bool = True) -> tuple:
-    """Return delta, theta, sigma, Pressure, Temp, Density, Speed of sound,
-    dynamic viscosity at a given altitude based on Standard Atmosphere model from 1976.
+    Return delta, theta, sigma, Pressure, Temp, Density, Speed of sound, dynamic viscosity at a given altitude based
+    on the 1976 Standard Atmosphere model.
 
     Parameters
     ----------
-    ha : float
-        Altitude above sea level.
-    units : 'ft' input and outputs in imperial units
-            'm' input and outputs in metric units
-    silent : 'True' print the results in the console
-             'False' do not print the results in the console
+    ha : float, int, np.ndarray, pd.Series
+        Altitude(s) above sea level.
+    units : 'ft' or 'm'
+        Input and output units.
+    silent : bool
+        If False, print results for each input (only when scalar or small array).
 
-    """  # noqa: D205
+    """
     # Constants
-
-    Ra = 1716.49   # specific gas constant for air (ft lb / slug R)
-    g = 32.174049  # acceleration due to gravity (ft/s^2)
+    Ra = 1716.49
+    g = 32.174049
     gamma = 1.4
-    Su = 198.72  # Sutherland's constant (R)
-    bu = 2.2697E-8  # (slug/ft-s-sqrt(R))
+    Su = 198.72
+    bu = 2.2697E-8
+
+    # Convert to numpy array
+    is_scalar = np.isscalar(ha)
+    ha_array = np.atleast_1d(ha).astype(float)
 
     if units == 'm':
-        ha = ha / 0.3048
+        ha_array = ha_array / 0.3048
     elif units != 'ft':
         raise TypeError("Inconsistent unit. Should be 'm' or 'ft'")
 
-    # parameters that define the standard atmosphere...
-    # altitudes (ft)
-    H1 = [
-        0,         # 0: beginning of troposphere
-        36089,     # 1: tropopause, start of isothermal stratosphere
-        65617,     # 2: start of lower stratosphere lapse layer
-        104987,    # 3: start of upper stratosphere lapse layer
-        154199,    # 4: stratopause, start of isothermal mesophere
-        167323,    # 5: start of lower mesosphere lapse layer
-        232940,    # 6: start of upper mesosphere lapse layer
-        278385,    # 7: mesopause, start of isothermal thermosphere
-        298556,    # 8: start of thermosphere ellipse lapse layer (91-120 km)
-        360892,    # 9: thermosphere lapse layer (110-120 km)
-        393701     # 10: top of current calculations (120 km)
-    ]
+    # Altitude, lapse rates, temps, pressures
+    H1 = np.array([
+        0, 36089, 65617, 104987, 154199, 167323,
+        232940, 278385, 298556, 360892, 393701
+    ])
 
-    # lapse rates  (R/ft)
-    A1 = [
-        -3.566E-3,   # 0: beginning of troposphere
-        0,           # 1: tropopause, start of isothermal stratosphere
-        5.486E-4,    # 2: start of lower stratosphere lapse layer
-        1.540E-3,    # 3: start of upper stratosphere lapse layer
-        0,           # 4: stratopause, start of isothermal mesophere
-        -1.540E-3,   # 5: start of lower mesosphere lapse layer
-        -1.1004E-3,  # 6: start of upper mesosphere lapse layer
-        0,           # 7: mesopause, start of isothermal thermosphere
-        -137.382,    # 8: thermosphere ellipse lapse layer (different formula)
-        6.584E-3,    # 9: thermosphere linear lapse layer (110-120 km)
-        0            # 10: top of calcs (120 km)
-    ]
+    A1 = np.array([
+        -3.566E-3, 0, 5.486E-4, 1.540E-3, 0,
+        -1.540E-3, -1.1004E-3, 0, -137.382, 6.584E-3, 0
+    ])
 
-    # base layer Temp definitions
     T1 = [
-        518.67,     # 0: SSL temp
-        389.97,     # 1: tropopause, start of isothermal stratosphere
-        389.97,     # 2: start of lower stratosphere lapse layer
-        411.57,     # 3: start of upper stratosphere lapse layer
-        487.17,     # 4: stratopause, start of isothermal mesophere
-        487.17,     # 5: start of lower mesosphere lapse layer
-        386.37,     # 6: start of upper mesosphere lapse layer
-        336.361,    # 7: mesopause, start of isothermal thermosphere
-        473.743,    # 8: thermosphere elliptic lapse layer (diff formula)
-        432         # 9: thermosphere linear lapse layer (110-120 km)
+        518.67, 389.97, 389.97, 411.57, 487.17,
+        487.17, 386.37, 336.361, 473.743, 432
     ]
-    T1.append(T1[9] + A1[9] * (H1[10] - H1[9]))  # 10: temp at 120 km
+    T1.append(T1[9] + A1[9] * (H1[10] - H1[9]))  # Temp at 120 km
 
     P1 = [
-        2116.21662,     # 0: SSL temp
-        472.688,        # 1: tropopause, start of isothermal stratosphere
-        114.345,        # 2: start of lower stratosphere lapse layer
-        18.129,         # 3: start of upper stratosphere lapse layer
-        2.31634,        # 4: stratopause, start of isothermal mesophere
-        1.39805,        # 5: start of lower mesosphere lapse layer
-        0.082632,       # 6: start of upper mesosphere lapse layer
-        0.0077986       # 7: mesopause, start of isothermal thermosphere
+        2116.21662, 472.688, 114.345, 18.129, 2.31634,
+        1.39805, 0.082632, 0.0077986
     ]
+    for i in range(7, 10):
+        T_base = T1[i]
+        P_prev = P1[-1]
+        delta_H = H1[i+1] - H1[i]
+        P1.append(P_prev * np.exp(-g / Ra / T_base * delta_H))
 
-    P1.append(P1[7] * np.exp(-1 * (g / Ra / T1[7]) * (H1[8] - H1[7])))
-    P1.append(P1[8] * np.exp(-1 * (g / Ra / T1[8]) * (H1[9] - H1[8])))
-    P1.append(P1[9] * np.exp(-1 * (g / Ra / T1[9]) * (H1[10] - H1[9])))
+    Rho1 = np.array(P1[0:10]) / np.array(T1[0:10]) / Ra
 
-    Rho1 = np.divide(np.array(P1[0:10]), np.array(T1[0:10])) / Ra
+    def compute_single(h_ft: float | int | np.ndarray | pd.Series) -> tuple:
+        idx_0 = list(map(lambda i: i > h_ft, H1)).index(True) - 1
+        a0 = A1[idx_0]
+        T0 = T1[idx_0]
+        H0 = H1[idx_0]
+        P0 = P1[idx_0]
+        Rho0 = Rho1[idx_0]
 
-    idx_0 = list(map(lambda i: i > ha, H1)).index(True) - 1
-    # idx_1 = list(map(lambda i: i >= ha, H1)).index(True)
-    a0 = A1[idx_0]  # lapse rate for the layer
-    T0 = T1[idx_0]  # temperature at the base of the layer
-    H0 = H1[idx_0]  # altitude at the base of the layer
-    P0 = P1[idx_0]  # pressure at the base of the layer
-    Rho0 = Rho1[idx_0]  # density at the base of the layer
-
-    if idx_0 != 8:  # the linear and zero lapse layers (all layers 8)
-        Ta = T0 + a0 * (ha - H0)
-        if a0 != 0:
+        if idx_0 != 8:
+            Ta = T0 + a0 * (h_ft - H0)
+            if a0 != 0:
+                Pa = P0 * (Ta / T0) ** (-g / a0 / Ra)
+                Rhoa = Rho0 * (Ta / T0) ** (-1 * (g / a0 / Ra + 1))
+            else:
+                Pa = P0 * np.exp(-g / Ra / Ta * (h_ft - H0))
+                Rhoa = Rho0 * np.exp(-g / Ra / Ta * (h_ft - H0))
+        else:
+            Ta = T0 + a0 * np.sqrt(1 - ((h_ft - H0) / (-19.9429 * 3281)) ** 2)
             Pa = P0 * (Ta / T0) ** (-g / a0 / Ra)
             Rhoa = Rho0 * (Ta / T0) ** (-1 * (g / a0 / Ra + 1))
-        else:
-            Pa = P0 * np.exp(-1 * (g / Ra / Ta) * (ha - H0))
-            Rhoa = Rho0 * np.exp(-1 * (g / Ra / Ta) * (ha - H0))
 
-    else:  # 91-120 km elliptic temperature profile layer
-        Ta = T0 + a0 * np.sqrt(1 - ((ha - H0) / (-19.9429 * 3281)) ** 2)
-        Pa = P0 * (Ta / T0) ** (-g / a0 / Ra)
-        Rhoa = Rho0 * (Ta / T0) ** (-1 * (g / a0 / Ra + 1))
+        a = np.sqrt(gamma * Ra * Ta)
+        mu = bu * Ta ** 1.5 / (Ta + Su)
 
-    a = np.sqrt(gamma * Ra * Ta)
-    mu = bu * Ta ** 1.5 / (Ta + Su)
-    delta = Pa / P1[0]
-    theta = Ta / T1[0]
-    sigma = Rhoa / Rho1[0]
+        delta = Pa / P1[0]
+        theta = Ta / T1[0]
+        sigma = Rhoa / Rho1[0]
 
-    if units == 'ft' and not silent:
-        print(
-            f"{'  delta:'.ljust(21)}{delta:0.4f}\n"
-            f"{'  theta:'.ljust(20)}{theta:0.4f}\n"
-            f"{'  sigma:'.ljust(20)}{sigma:0.4f}\n"
-            f"{'  P (psf):'.ljust(20)}{Pa:0.2f}\n"
-            f"{'  T (R):'.ljust(20)}{Ta:0.2f}\n"
-            f"{'  rho (slug/ft^3):'.ljust(20)}{Rhoa:0.3e}\n"
-            f"{'  a (fps):'.ljust(20)}{a:0.1f}\n"
-            f"{'  mu (slug/ft-s):'.ljust(20)}{mu:0.3e}\n"
-        )
+        if units == 'm':
+            Pa *= 47.8803
+            Ta /= 1.8
+            Rhoa *= 515.379
+            a *= 0.3048
+            mu *= 47.8803
 
-    elif units == 'm':
-        Pa = Pa * 47.8803
-        Ta = Ta / 1.8
-        Rhoa = Rhoa * 515.379
-        a = a * 0.3048
-        mu = mu * 47.8803
+        return delta, theta, sigma, Pa, Ta, Rhoa, a, mu
 
-        if not silent:
-            print(
-                f"{'  delta:'.ljust(21)} {delta:0.4f}\n"
-                f"{'  theta:'.ljust(20)} {theta:0.4f}\n"
-                f"{'  sigma:'.ljust(20)} {sigma:0.4f}\n"
-                f"{'  P (Pa):'.ljust(20)} {Pa:0.2f}\n"
-                f"{'  T (K):'.ljust(20)} {Ta:0.2f}\n"
-                f"{'  rho (kg/m^3):'.ljust(20)} {Rhoa:0.3e}\n"
-                f"{'  a (m/s):'.ljust(20)} {a:0.1f}\n"
-                f"{'  mu (kg/m-s):'.ljust(20)} {mu:0.3e}\n"
-            )
+    # Vectorized computation
+    results = np.vectorize(compute_single, otypes=[float]*8)(ha_array)
 
-    return delta, theta, sigma, Pa, Ta, Rhoa, a, mu
+    # If input was scalar, return scalars
+    if is_scalar:
+        return tuple(res[0] for res in results)
+
+    # Return array of results
+    return tuple(np.array(res) for res in results)
 
 
 def density_alt(sigma :float, units:str='ft')-> float:
@@ -513,18 +471,33 @@ def TAStoCAS(TAS: float, altitude: float, temp: float = 0, Offset: bool = True, 
     Notes
     -----
     - Uses the standard atmosphere model for calculations.
-    - Requires external constants and functions: `cst.A_SL_KT`, `cst.P_SL_PSF`, `pressure`, `temperature`, `cst.GAMMA`,
-                                                `cst.R_IMPERIAL`, `cst.K_TO_R`, `cst.FPS_TO_KT`.
 
     """
+    if units not in ['ft', 'm']:
+        raise ValueError("Invalid units. Please use 'ft' or 'm'.")
+
     if Offset:
-        Air_temp = temperature(altitude * 0.3048, units='m') + temp
+        Air_temp = temperature(altitude, units) + temp
     else:
         Air_temp = temp + 273.15
-    a = np.sqrt(cst.GAMMA * cst.R_IMPERIAL * Air_temp * cst.K_TO_R)
-    Mach = TAS / (a * cst.FPS_TO_KT)
+    a = np.sqrt(cst.GAMMA * cst.R_IMPERIAL * Air_temp * cst.K_TO_R)* cst.FPS_TO_KT
+    Mach = TAS / a
+
     if Mach > 1:
-        raise ValueError("Mach number > 1, cannot convert TAS to CAS")
+        qc = cst.P_SL_PSF*pressure_ratio(altitude, units) * (166.921*Mach**7/(7*Mach**2-1)**(5/2)-1) #Erb's formula C102
+        CAS_init = 800
+        print(qc)
+
+        def implicit_eq(CAS: float) -> float:
+            left = CAS
+            right = cst.A_SL_KT * 0.881284 * np.sqrt(
+                (qc / cst.P_SL_PSF + 1) * (1 - 1 / (7 * (CAS / cst.A_SL_KT)**2))**(5/2)
+            )
+            return left - right  # we want this to be 0
+
+        CAS = fsolve(implicit_eq, CAS_init)[0]
+        return CAS
+
     CAS = cst.A_SL_KT * np.sqrt(
         5 * (
             (

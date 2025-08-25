@@ -109,6 +109,7 @@ def merge_trajectories(trajectories: list[Trajectory]) -> Trajectory:
     merged_params = {}
     for t in trajectories:
         for key, value in t.params.items():
+            # print(key,value)
             if key not in merged_params:
                 merged_params[key] = value
 

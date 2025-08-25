@@ -17,8 +17,8 @@ Attributes:
     C_TO_K_OFFSET (float): Celsius to Kelvin offset.
     G_IMPERIAL (float): Gravity in feet per second squared.
     G_METRIC (float): Gravity in meters per second squared.
-    FT_TO_METER (float): Feet to meters conversion factor.
-    METER_TO_FT (float): Meters to feet conversion factor.
+    FT_TO_M (float): Feet to meters conversion factor.
+    M_TO_FT (float): Meters to feet conversion factor.
     FT_TO_NM (float): Feet to nautical miles conversion factor.
     NM_TO_FT (float): Nautical miles to feet conversion factor.
     NM_TO_M (float): Nautical miles to meters conversion factor.
@@ -48,13 +48,14 @@ T_SL_K = 288.15         # K, temperature at sea level
 P_SL_PSF = 2116.22      # psf, pressure at sea level
 RHO_SL_SCF = 0.002378   # slug/ft^3, density at sea level
 A_SL_KT = 661.4786      # kt, speed of sound at sea level
+A_SL_MS = 340.294       # m/s, speed of sound at sea level
 C_TO_K_OFFSET = 273.15  # K, Celsius to Kelvin offset
 G_IMPERIAL = 32.2       # ft/s^2, gravity
 G_METRIC = 9.80665      # m/s^2, gravity
 
 # Distance conversions
-FT_TO_METER = 0.3048
-METER_TO_FT = 1 / FT_TO_METER
+FT_TO_M = 0.3048
+M_TO_FT = 1 / FT_TO_M
 FT_TO_NM = 1 / 6076.12
 NM_TO_FT = 6076.12
 NM_TO_M = 1852
