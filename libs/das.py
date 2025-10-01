@@ -113,10 +113,11 @@ def das_read(file_path: str, aircraft: str) -> tuple[pd.DataFrame, dict]:
             data['GPS_LONG_DEG'] + data['GPS_LONG_MIN'] / 60)
         data['LAT'] = 2 * (data['GPS_LAT_DIRECT'] - 0.5) * (
             data['GPS_LAT_DEG'] + data['GPS_LAT_MIN'] / 60)
+        data['FUEL_TOTAL'] = data['EED_RIGHT_FUEL_QTY'] + data['EED_LEFT_FUEL_QTY']
         data = data.rename(columns={'AOA': 'AOA_YAPS'})
         data = data.rename(columns={
             'GPS_ALTITUDE': 'GPS_ALT',
-            'ADC_AMB_AIR_TEMP': 'SAT',
+            'ADC_AMBIENT_AIR_TEMP': 'SAT',
             'ADC_TOTAL_AIR_TEMP': 'TAT',
             'ADC_PRESSURE_ALTITUDE': 'BARO_ALT',
             'EGI_TRUE_HEADING': 'YAW',
@@ -135,6 +136,10 @@ def das_read(file_path: str, aircraft: str) -> tuple[pd.DataFrame, dict]:
             'RUD_PED_POS': 'DELTA_RUD',
             'LON_SP': 'DELTA_STICK_LON',
             'LAT_SP': 'DELTA_STICK_LAT',
+            'EED_RIGHT_FUEL_QTY':'RIGHT_FUEL',
+            'EED_LEFT_FUEL_QTY':'LEFT_FUEL',
+            'EED_RIGHT_ENGINE_RPM': 'RIGHT_N1',
+            'EED_LEFT_ENGINE_RPM': 'LEFT_N1',
             # 'EVENT': 'EVENT',
             # 'LEFT_FUEL_FLOW': 'LEFT_FUEL_FLOW',
             # 'RIGHT_FUEL_FLOW': 'RIGHT_FUEL_FLOW',
@@ -216,21 +221,75 @@ def to_test_point_lite(event: list,event_list:dict) -> pd.DataFrame:
     timestamps = pd.DataFrame(processed_event, columns=['Begin', 'End'])
     return timestamps
 
-
 def to_test_point_full(event: list, event_list: dict) -> pd.DataFrame:
     """Convert time segment lists to a DataFrame with begin and end timestamps and other metadata.
 
-    If Begin/End is a string, convert to datetime; if an integer, use event_list lookup.
+    - If Begin/End is a string, interpret it as hh:mm:ss on the date of the first event in event_list.
+    - If an integer, use event_list lookup.
     """
     processed_event = []
 
+    # Use the date of the first datetime in event_list
+    first_dt = next(v for v in event_list.values() if isinstance(v, pd.Timestamp))
+    base_date = first_dt.normalize()  # midnight of that date
+
     for begin, end, fuel, conf, label in event:
-        begin_val = pd.to_datetime(begin, format='mixed') if isinstance(begin, str) else event_list.get(begin)
-        end_val = pd.to_datetime(end, format='mixed') if isinstance(end, str) else event_list.get(end)
+        if isinstance(begin, str):
+            begin_time = pd.to_datetime(begin).time()
+            begin_val = pd.Timestamp.combine(base_date, begin_time)
+        else:
+            begin_val = event_list.get(begin)
+
+        if isinstance(end, str):
+            end_time = pd.to_datetime(end).time()
+            end_val = pd.Timestamp.combine(base_date, end_time)
+        else:
+            end_val = event_list.get(end)
+
         processed_event.append([begin_val, end_val, float(fuel), conf, label])
 
-    timestamps = pd.DataFrame(processed_event, columns=['Begin', 'End', 'Fuel', 'Conf', 'Label'])
-    return timestamps
+    return pd.DataFrame(processed_event, columns=['Begin', 'End', 'Fuel', 'Conf', 'Label'])
+
+def to_turn_test_point(event: list, event_list: dict) -> pd.DataFrame:
+    """Convert time segment lists to a DataFrame with begin, end timestamps, 2 intermediate timestamps and other metadata.
+
+    - If events are a string, interpret them as hh:mm:ss on the date of the first event in event_list.
+    - If an integer, use event_list lookup.
+    """
+    processed_event = []
+
+    # Use the date of the first datetime in event_list
+    first_dt = next(v for v in event_list.values() if isinstance(v, pd.Timestamp))
+    base_date = first_dt.normalize()  # midnight of that date
+
+    for begin, end_turn, start_descent, end, conf, label in event:
+        if isinstance(begin, str):
+            begin_time = pd.to_datetime(begin).time()
+            begin_val = pd.Timestamp.combine(base_date, begin_time)
+        else:
+            begin_val = event_list.get(begin)
+
+        if isinstance(end_turn, str):
+            end_turn_time = pd.to_datetime(end_turn).time()
+            end_turn_val = pd.Timestamp.combine(base_date, end_turn_time)
+        else:
+            end_turn_val = event_list.get(end_turn)
+
+        if isinstance(start_descent, str):
+            start_descent_time = pd.to_datetime(start_descent).time()
+            start_descent_val = pd.Timestamp.combine(base_date, start_descent_time)
+        else:
+            start_descent_val = event_list.get(start_descent)
+
+        if isinstance(end, str):
+            end_time = pd.to_datetime(end).time()
+            end_val = pd.Timestamp.combine(base_date, end_time)
+        else:
+            end_val = event_list.get(end)
+
+        processed_event.append([begin_val, end_turn_val, start_descent_val, end_val, conf, label])
+
+    return pd.DataFrame(processed_event, columns=['Begin', 'End_Turn', 'Start_Descent', 'End', 'Conf', 'Label'])
 
 
 def C12_CL_theo(current_CT: float, current_AOA: float, conf: str = 'Cruise') -> float:

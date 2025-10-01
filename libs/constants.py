@@ -75,6 +75,12 @@ GAMMA = 1.4            # Ratio of specific heats
 # Temperature conversions
 R_TO_K = 5 / 9           # Rankine to Kelvin
 K_TO_R = 9 / 5           # Kelvin to Rankine
+C_TO_K_OFFSET = 273.15  # Celsius to Kelvin offset
+K_TO_C_OFFSET = -273.15 # Kelvin to Celsius offset
+
+#Weight conversion
+LB_TO_KG=0.45359237     #pound to kg
+KG_TO_LB=1/0.45359237   #kg to pound
 
 # Time constants
 EPOCH_OFFSET = 1735689600  # Epoch time for 1/1/2025 00:00:00

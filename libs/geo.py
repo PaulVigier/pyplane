@@ -87,6 +87,7 @@ Functions:
 
 """
 import numpy as np
+import pandas as pd
 import pymap3d as pm3d
 from geographiclib.geodesic import Geodesic
 from scipy.optimize import minimize_scalar
@@ -97,13 +98,21 @@ from .transform import Transform
 geod = Geodesic.WGS84  # using WGS84 ellipsoid for inverse geodesic calculations
 
 
-def normalize_angle(angle: float) -> float:
-    """Return an angle (in degrees) in the range (-180, 180]."""
-    normalized = ((angle - 180) % 360) - 180
-    if normalized == -180:
-        return 180
-    return normalized
-
+def normalize_angle(angle):
+    """Return an angle (in degrees) in the range (-180, 180]. 
+    Works with scalars, NumPy arrays, or pandas Series.
+    """
+    normalized = ((np.asarray(angle) - 180) % 360) - 180
+    # Handle the -180 case → map to 180
+    normalized = np.where(normalized == -180, 180, normalized)
+    
+    # Preserve input type
+    if isinstance(angle, pd.Series):
+        return pd.Series(normalized, index=angle.index)
+    elif np.isscalar(angle):
+        return float(normalized)
+    else:
+        return normalized
 
 def normalize_heading(heading: float) -> float:
     """Return a heading (in degrees) in the range (0, 360]."""

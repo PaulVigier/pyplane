@@ -10,6 +10,6 @@ output/
 .tmp.driveupload/
 .tmp.drivedownload/
 .ipynb_checkpoints/
-
+plots/
 # Visual Studio folders
 .vs/
